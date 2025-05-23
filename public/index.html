@@ -43,7 +43,7 @@
             if (heartData.avg) {
               const d = new Date(heartData.date);
               const min = Math.floor((now.getTime() - d.getTime()) / (60 * 1000));
-              heart.textContent = "直近の心拍数は" + heartData.avg.toString() + "bpm（" + min.toString() + "分前）";
+              heart.textContent = "直近の心拍数は" + Math.floor(heartData.avg).toString() + "bpm（" + min.toString() + "分前）";
             }
           })();
         });
