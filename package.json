@@ -1,0 +1,25 @@
+{
+  "name": "isfine-cordx",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "test": "vitest",
+    "cf-typegen": "wrangler types",
+    "fmt": "prettier -w ."
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.8.19",
+    "@types/node": "^22.15.21",
+    "prettier": "^3.5.3",
+    "typescript": "^5.5.2",
+    "vitest": "~3.0.7",
+    "wrangler": "^4.16.1"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.13",
+    "zod": "^3.25.23"
+  }
+}
