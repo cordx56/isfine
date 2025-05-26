@@ -5,13 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Is cordx56 fine?</title>
 
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:site" content="@cordx56">
-    <meta name="twitter:creator" content="@cordx56">
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:site" content="@cordx56" />
+    <meta name="twitter:creator" content="@cordx56" />
 
-    <meta property="og:title" content="Is cordx56 fine?">
-    <meta property="og:description" content="cordx56の健康状態がみられます。">
-    <meta property="og:url" content="https://isfine.cordx.cx/">
+    <meta property="og:title" content="Is cordx56 fine?" />
+    <meta property="og:description" content="cordx56の健康状態がみられます。" />
+    <meta property="og:url" content="https://isfine.cordx.cx/" />
+
+    <style>
+      :root {
+        font-family: sans-serif;
+        text-align: center;
+        font-size: 2em;
+      }
+      h1 {
+        font-weight: 300;
+        font-size: 2em;
+      }
+    </style>
   </head>
   <body>
     <h1 id="heading">Is cordx56 fine?</h1>
@@ -23,29 +35,28 @@
         .then((resp) => resp.json())
         .then((data) => {
           const asleep = document.getElementById("asleep");
-          const asleepData = data.asleep;
-          (() => {
-            if (asleepData.end) {
-              const end = new Date(asleepData.end);
-              if (now.getTime() - end.getTime() > 600 * 1000) {
-                const start = new Date(asleepData.start);
-                const dur = (end.getTime() - start.getTime()) / (3600 * 1000);
-                asleep.textContent = "起きています; 前回の睡眠時間：" + dur.toString() + "時間";
-                return;
+          const heart = document.getElementById("heart");
+          const heartData = data.heart_rate;
+          if (heartData && heartData.avg) {
+            const d = new Date(heartData.date);
+            const min = Math.floor((now.getTime() - d.getTime()) / (60 * 1000));
+            const resting = data.resting_heart_rate;
+            if (resting) {
+              if (resting.qty + 10 < heartData.avg) {
+                asleep.textContent = "起きています";
+              } else if (resting.qty + 5 < heartData.avg) {
+                asleep.textContent = "多分起きています";
+              } else {
+                asleep.textContent = "寝ています";
               }
             }
-            asleep.textContent = "寝ています";
-          })();
-
-          (() => {
-            const heart = document.getElementById("heart");
-            const heartData = data.heart_rate;
-            if (heartData.avg) {
-              const d = new Date(heartData.date);
-              const min = Math.floor((now.getTime() - d.getTime()) / (60 * 1000));
-              heart.textContent = "直近の心拍数は" + Math.floor(heartData.avg).toString() + "bpm（" + min.toString() + "分前）";
-            }
-          })();
+            heart.textContent =
+              "直近の心拍数は" +
+              Math.floor(heartData.avg).toString() +
+              "bpm（" +
+              min.toString() +
+              "分前）";
+          }
         });
     </script>
   </body>
