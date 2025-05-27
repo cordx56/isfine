@@ -94,10 +94,12 @@ export default {
           asleep.sort((a, b) =>
             b.end ? (a.end ? b.end.unix() - a.end.unix() : -1) : 1,
           );
-          result["asleep"] = {
-            start: asleep[0].start.toISOString(),
-            end: asleep[0].end?.toISOString(),
-          };
+          if (asleep[0]) {
+            result["asleep"] = {
+              start: asleep[0].start.toISOString(),
+              end: asleep[0].end?.toISOString(),
+            };
+          }
         }
 
         const restingHeartRate = gotData.data.data.metrics.filter(
@@ -109,10 +111,12 @@ export default {
             qty: v.qty,
           }));
           restingHeartRates.sort((a, b) => b.date.unix() - a.date.unix());
-          result["resting_heart_rate"] = {
-            date: restingHeartRates[0].date.toISOString(),
-            qty: restingHeartRates[0].qty,
-          };
+          if (restingHeartRates[0]) {
+            result["resting_heart_rate"] = {
+              date: restingHeartRates[0].date.toISOString(),
+              qty: restingHeartRates[0].qty,
+            };
+          }
         }
 
         const heartRate = gotData.data.data.metrics.filter(
@@ -124,10 +128,12 @@ export default {
             avg: v.Avg,
           }));
           heartRates.sort((a, b) => b.date.unix() - a.date.unix());
-          result["heart_rate"] = {
-            date: heartRates[0].date.toISOString(),
-            avg: heartRates[0].avg,
-          };
+          if (heartRates[0]) {
+            result["heart_rate"] = {
+              date: heartRates[0].date.toISOString(),
+              avg: heartRates[0].avg,
+            };
+          }
         }
 
         return Response.json(result);
