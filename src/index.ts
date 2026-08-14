@@ -101,7 +101,15 @@ const TOKEN = "To!cFvZw2ykXGdrXssePLQLPfEvP6-UT";
 export default {
   async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
-    let authed = url.password === TOKEN || request.headers.get("token") === TOKEN;
+    let authed = request.headers.get("token") === TOKEN;
+    const authHeader = request.headers.get("Authorization");
+    if (authHeader && authHeader.includes(" ")) {
+      const token = authHeader.split(" ")[1];
+      const decoded = atob(token);
+      if (decoded.endsWith(`:${TOKEN}`)) {
+        authed = true;
+      }
+    }
 
     switch (url.pathname) {
       case "/api/post":
@@ -112,7 +120,7 @@ export default {
         const newData = schema.safeParse(rawData);
         if (!newData.success) {
           await env.STORAGE.put("illegal.json", JSON.stringify(rawData));
-          return new Response("Illegal Data", { status: 400 });
+          return new Response("Illegal Data; ignore");
         }
 
         if ("lat" in newData.data && "lon" in newData.data) {
@@ -125,9 +133,6 @@ export default {
 
 
       case "/api/location":
-        if (!authed) {
-          return new Response("Token ERROR", { status: 403 });
-        }
         const rawLocation = await env.STORAGE.get("location.json");
         if (!rawLocation) {
           return new Response("Not found", { status: 404 });

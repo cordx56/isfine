@@ -38,7 +38,7 @@
    * Environment Variables
    * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
    */
-  "vars": { "GOOGLE_GEOCODE_KEY": "" },
+  // "vars": { "GOOGLE_GEOCODE_KEY": "" },
   /**
    * Note: Use secrets to store sensitive data.
    * https://developers.cloudflare.com/workers/configuration/secrets/

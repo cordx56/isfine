@@ -30,6 +30,7 @@
     <p id="asleep"></p>
     <p id="heart"></p>
     <p id="location"></p>
+    <p id="timezone"></p>
     <script>
       const now = new Date();
       fetch("/api/health")
@@ -63,7 +64,9 @@
         .then((resp) => resp.json())
         .then((data) => {
           const loca = document.getElementById("location");
-          loca.textContent = `${data.wide}のあたりにいます。タイムゾーンは${data.timeZoneId}`;
+          loca.textContent = data.wide;
+          const tz = document.getElementById("timezone");
+          tz.textContent = data.timeZoneId;
         });
     </script>
   </body>
