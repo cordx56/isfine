@@ -1,3 +1,5 @@
+import { env as globalEnv } from "cloudflare:workers";
+
 /**
  * Welcome to Cloudflare Workers! This is your first worker.
  *
@@ -14,7 +16,13 @@
 import { z } from "zod";
 import dayjs from "dayjs";
 
-const schema = z.object({
+const locationSchema = z.object({
+  _type: z.literal("location"),
+  lat: z.number(),
+  lon: z.number(),
+});
+
+const healthSchema = z.object({
   data: z.object({
     metrics: z
       .union([
@@ -51,14 +59,53 @@ const schema = z.object({
   }),
 });
 
+const schema = z.union([
+  locationSchema,
+  healthSchema,
+]);
+
+const googleGeocodeSchema = z.object({
+  results: z.array(z.object({
+    formattedAddress: z.string(),
+  })),
+});
+const googleTimezoneSchema = z.object({
+  timeZoneId: z.string(),
+});
+const locationRespSchema = z.object({
+  wide: z.string(),
+  detailed: z.string(),
+  timeZoneId: z.string(),
+});
+const getAddressesFromGeocode = async (lat: number, lon: number) => {
+  const resp = await fetch(
+    `https://geocode.googleapis.com/v4/geocode/location/${lat},${lon}?key=${globalEnv.GOOGLE_GEOCODE_KEY}`
+  );
+  const parsed = googleGeocodeSchema.parse(await resp.json());
+  const wide = parsed.results[parsed.results.length - 2].formattedAddress;
+  const detailed = parsed.results[0].formattedAddress;
+  const timestamp = new Date().getTime() / 1000;
+  const timezoneResp = await fetch(
+    `https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lon}&timestamp=${timestamp}&key=${globalEnv.GOOGLE_GEOCODE_KEY}`
+  );
+  const timeZoneId = googleTimezoneSchema.parse(await timezoneResp.json()).timeZoneId;
+  return {
+    wide,
+    detailed,
+    timeZoneId,
+  }
+};
+
+const TOKEN = "To!cFvZw2ykXGdrXssePLQLPfEvP6-UT";
+
 export default {
   async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
+    let authed = url.password === TOKEN || request.headers.get("token") === TOKEN;
+
     switch (url.pathname) {
       case "/api/post":
-        if (
-          request.headers.get("token") !== "To!cFvZw2ykXGdrXssePLQLPfEvP6-UT"
-        ) {
+        if (!authed) {
           return new Response("Token ERROR", { status: 403 });
         }
         const rawData = await request.json();
@@ -67,14 +114,38 @@ export default {
           await env.STORAGE.put("illegal.json", JSON.stringify(rawData));
           return new Response("Illegal Data", { status: 400 });
         }
-        await env.STORAGE.put("latest.json", JSON.stringify(rawData));
+
+        if ("lat" in newData.data && "lon" in newData.data) {
+          const addresses = await getAddressesFromGeocode(newData.data.lat, newData.data.lon);
+          await env.STORAGE.put("location.json", JSON.stringify(addresses));
+        } else {
+          await env.STORAGE.put("health.json", JSON.stringify(rawData));
+        }
         return new Response("OK");
-      case "/api/data":
-        const rawObj = await env.STORAGE.get("latest.json");
+
+
+      case "/api/location":
+        if (!authed) {
+          return new Response("Token ERROR", { status: 403 });
+        }
+        const rawLocation = await env.STORAGE.get("location.json");
+        if (!rawLocation) {
+          return new Response("Not found", { status: 404 });
+        }
+        const parsedLocation = locationRespSchema.safeParse(await rawLocation.json());
+        if (!parsedLocation.success) {
+          return new Response("Illegal Data", { status: 400 });
+        }
+        const { detailed, ...safeLocation } = parsedLocation.data;
+        return Response.json(authed ? { detailed, ...safeLocation } : safeLocation);
+
+
+      case "/api/health":
+        const rawObj = await env.STORAGE.get("health.json");
         if (!rawObj) {
           return new Response("Not found", { status: 404 });
         }
-        const gotData = schema.safeParse(await rawObj.json());
+        const gotData = healthSchema.safeParse(await rawObj.json());
         if (!gotData.success) {
           return new Response("Illegal Data", { status: 400 });
         }

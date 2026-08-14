@@ -29,9 +29,10 @@
     <h1 id="heading">Is cordx56 fine?</h1>
     <p id="asleep"></p>
     <p id="heart"></p>
+    <p id="location"></p>
     <script>
       const now = new Date();
-      fetch("/api/data")
+      fetch("/api/health")
         .then((resp) => resp.json())
         .then((data) => {
           const asleep = document.getElementById("asleep");
@@ -57,6 +58,12 @@
               min.toString() +
               "分前）";
           }
+        });
+      fetch("/api/location")
+        .then((resp) => resp.json())
+        .then((data) => {
+          const loca = document.getElementById("location");
+          loca.textContent = `${data.wide}のあたりにいます。タイムゾーンは${data.timeZoneId}`;
         });
     </script>
   </body>
