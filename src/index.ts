@@ -70,14 +70,18 @@ const googleGeocodeSchema = z.object({
   })),
 });
 const googleTimezoneSchema = z.object({
+  dstOffset: z.number(),
+  rawOffset: z.number(),
   timeZoneId: z.string(),
 });
 const locationRespSchema = z.object({
   wide: z.string(),
   detailed: z.string(),
+  dstOffset: z.number(),
+  rawOffset: z.number(),
   timeZoneId: z.string(),
 });
-const getAddressesFromGeocode = async (lat: number, lon: number) => {
+const getAddressesFromGeocode = async (lat: number, lon: number): Promise<z.infer<typeof locationRespSchema>> => {
   const resp = await fetch(
     `https://geocode.googleapis.com/v4/geocode/location/${lat},${lon}?key=${globalEnv.GOOGLE_GEOCODE_KEY}`
   );
@@ -88,10 +92,12 @@ const getAddressesFromGeocode = async (lat: number, lon: number) => {
   const timezoneResp = await fetch(
     `https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lon}&timestamp=${timestamp}&key=${globalEnv.GOOGLE_GEOCODE_KEY}`
   );
-  const timeZoneId = googleTimezoneSchema.parse(await timezoneResp.json()).timeZoneId;
+  const { timeZoneId, rawOffset, dstOffset } = googleTimezoneSchema.parse(await timezoneResp.json());
   return {
     wide,
     detailed,
+    dstOffset: dstOffset / 60,
+    rawOffset: rawOffset / 60,
     timeZoneId,
   }
 };

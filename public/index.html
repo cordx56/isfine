@@ -30,7 +30,7 @@
     <p id="asleep"></p>
     <p id="heart"></p>
     <p id="location"></p>
-    <p id="timezone"></p>
+    <p id="timeOffset"></p>
     <script>
       const now = new Date();
       fetch("/api/health")
@@ -65,8 +65,11 @@
         .then((data) => {
           const loca = document.getElementById("location");
           loca.textContent = data.wide;
-          const tz = document.getElementById("timezone");
-          tz.textContent = data.timeZoneId;
+
+          const localOffset = new Date().getTimezoneOffset();
+          const offset = (data.dstOffset + data.rawOffset) + localOffset;
+          const offsetElem = document.getElementById("timeOffset");
+          offsetElem.textContent = `あなたとの時差は${offset / 60}時間です`;
         });
     </script>
   </body>
