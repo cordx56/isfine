@@ -59,15 +59,14 @@ const healthSchema = z.object({
   }),
 });
 
-const schema = z.union([
-  locationSchema,
-  healthSchema,
-]);
+const schema = z.union([locationSchema, healthSchema]);
 
 const googleGeocodeSchema = z.object({
-  results: z.array(z.object({
-    formattedAddress: z.string(),
-  })),
+  results: z.array(
+    z.object({
+      formattedAddress: z.string(),
+    }),
+  ),
 });
 const googleTimezoneSchema = z.object({
   dstOffset: z.number(),
@@ -81,28 +80,33 @@ const locationRespSchema = z.object({
   rawOffset: z.number(),
   timeZoneId: z.string(),
 });
-const getAddressesFromGeocode = async (lat: number, lon: number): Promise<z.infer<typeof locationRespSchema>> => {
+const getAddressesFromGeocode = async (
+  lat: number,
+  lon: number,
+): Promise<z.infer<typeof locationRespSchema>> => {
   const resp = await fetch(
-    `https://geocode.googleapis.com/v4/geocode/location/${lat},${lon}?key=${globalEnv.GOOGLE_GEOCODE_KEY}`
+    `https://geocode.googleapis.com/v4/geocode/location/${lat},${lon}?key=${globalEnv.GOOGLE_GEOCODE_KEY}`,
   );
   const parsed = googleGeocodeSchema.parse(await resp.json());
   const wide = parsed.results[parsed.results.length - 2].formattedAddress;
   const detailed = parsed.results[0].formattedAddress;
   const timestamp = new Date().getTime() / 1000;
   const timezoneResp = await fetch(
-    `https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lon}&timestamp=${timestamp}&key=${globalEnv.GOOGLE_GEOCODE_KEY}`
+    `https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lon}&timestamp=${timestamp}&key=${globalEnv.GOOGLE_GEOCODE_KEY}`,
   );
-  const { timeZoneId, rawOffset, dstOffset } = googleTimezoneSchema.parse(await timezoneResp.json());
+  const { timeZoneId, rawOffset, dstOffset } = googleTimezoneSchema.parse(
+    await timezoneResp.json(),
+  );
   return {
     wide,
     detailed,
     dstOffset: dstOffset / 60,
     rawOffset: rawOffset / 60,
     timeZoneId,
-  }
+  };
 };
 
-const TOKEN = "To!cFvZw2ykXGdrXssePLQLPfEvP6-UT";
+const TOKEN = globalEnv.TOKEN;
 
 export default {
   async fetch(request, env, ctx): Promise<Response> {
@@ -130,32 +134,41 @@ export default {
         }
 
         if ("lat" in newData.data && "lon" in newData.data) {
-          const addresses = await getAddressesFromGeocode(newData.data.lat, newData.data.lon);
+          const addresses = await getAddressesFromGeocode(
+            newData.data.lat,
+            newData.data.lon,
+          );
           await env.STORAGE.put("location.json", JSON.stringify(addresses));
         } else {
           await env.STORAGE.put("health.json", JSON.stringify(rawData));
         }
         return new Response("OK");
 
-
       case "/api/location":
         const rawLocation = await env.STORAGE.get("location.json");
         if (!rawLocation) {
           return new Response("Not found", { status: 404 });
         }
-        const parsedLocation = locationRespSchema.safeParse(await rawLocation.json());
+        const uploaded = rawLocation.uploaded.toISOString();
+        const parsedLocation = locationRespSchema.safeParse(
+          await rawLocation.json(),
+        );
         if (!parsedLocation.success) {
           return new Response("Illegal Data", { status: 400 });
         }
         const { detailed, ...safeLocation } = parsedLocation.data;
-        return Response.json(authed ? { detailed, ...safeLocation } : safeLocation);
-
+        return Response.json(
+          authed
+            ? { detailed, uploaded, ...safeLocation }
+            : { uploaded, ...safeLocation },
+        );
 
       case "/api/health":
         const rawObj = await env.STORAGE.get("health.json");
         if (!rawObj) {
           return new Response("Not found", { status: 404 });
         }
+        const healthUploaded = rawObj.uploaded.toISOString();
         const gotData = healthSchema.safeParse(await rawObj.json());
         if (!gotData.success) {
           return new Response("Illegal Data", { status: 400 });
@@ -218,7 +231,7 @@ export default {
           }
         }
 
-        return Response.json(result);
+        return Response.json({ uploaded: healthUploaded, ...result });
       default:
         return new Response("Not Found", { status: 404 });
     }

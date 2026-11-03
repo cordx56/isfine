@@ -67,7 +67,7 @@
           loca.textContent = data.wide;
 
           const localOffset = new Date().getTimezoneOffset();
-          const offset = (data.dstOffset + data.rawOffset) + localOffset;
+          const offset = data.dstOffset + data.rawOffset + localOffset;
           const offsetElem = document.getElementById("timeOffset");
           offsetElem.textContent = `あなたとの時差は${offset / 60}時間です`;
         });
